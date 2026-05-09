@@ -7,7 +7,9 @@ import logging
 import logging.handlers
 import os
 
-_LOG_DIR  = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'logs')
+from utils.paths import app_data_dir
+
+_LOG_DIR  = os.path.join(app_data_dir(), 'logs')
 _LOG_FILE = os.path.join(_LOG_DIR, 'gps_monitor.log')
 _FMT      = '%(asctime)s  %(levelname)-8s  %(name)s: %(message)s'
 _DATE_FMT = '%Y-%m-%d %H:%M:%S'

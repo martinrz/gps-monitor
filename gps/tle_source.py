@@ -5,6 +5,8 @@ import ssl
 import time
 import urllib.request
 
+from utils.paths import app_data_dir
+
 log = logging.getLogger(__name__)
 
 try:
@@ -13,7 +15,7 @@ try:
 except Exception:
     _SSL_CTX = None
 
-CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'tle_cache')
+CACHE_DIR = os.path.join(app_data_dir(), 'tle_cache')
 CACHE_TTL  = 86400  # seconds
 
 _GROUP_URL = "https://celestrak.org/NORAD/elements/gp.php?GROUP={key}&FORMAT=TLE"

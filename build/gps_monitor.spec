@@ -59,6 +59,11 @@ hiddenimports = [
     'matplotlib.backends.backend_qtagg',
     'matplotlib.backends.backend_agg',
 
+    # Local utility modules
+    'utils.paths',
+    'utils.log_config',
+    'utils.orbital_math',
+
     # Our local protocol parsers (in a sub-package, sometimes missed)
     'gps.protocols.nmea',
     'gps.protocols.ubx',

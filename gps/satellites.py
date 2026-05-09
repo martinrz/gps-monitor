@@ -9,9 +9,11 @@ import logging
 import os
 import time
 
+from utils.paths import app_data_dir
+
 log = logging.getLogger(__name__)
 
-_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'satellites.dat')
+_DB_PATH = os.path.join(app_data_dir(), 'satellites.dat')
 
 
 def _norad_id(line1: str) -> str:
