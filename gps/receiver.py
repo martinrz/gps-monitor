@@ -1,6 +1,9 @@
+import logging
 import time
 from PyQt6.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 from gps.data_models import GPSData
+
+log = logging.getLogger(__name__)
 
 try:
     import serial
@@ -55,17 +58,21 @@ class GPSReceiver(QObject):
 
     @pyqtSlot()
     def run(self):
-        self._running = True
-        if self._use_tle:
-            self._run_tle_mode()
-            return
-        if self._simulate or not SERIAL_AVAILABLE:
-            self._run_simulation()
-            return
-        if self._port:
-            self._connect_to_port(self._port)
-        else:
-            self._auto_detect()
+        try:
+            self._running = True
+            if self._use_tle:
+                self._run_tle_mode()
+                return
+            if self._simulate or not SERIAL_AVAILABLE:
+                self._run_simulation()
+                return
+            if self._port:
+                self._connect_to_port(self._port)
+            else:
+                self._auto_detect()
+        except Exception as exc:
+            log.exception("GPSReceiver.run() fatal: %s", exc)
+            self.error_occurred.emit(f"Receiver error: {exc}")
 
     def stop(self):
         self._running = False

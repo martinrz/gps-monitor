@@ -1,9 +1,12 @@
+import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional
 import numpy as np
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 from gps.data_models import NTPResult, TimeEstimate
+
+log = logging.getLogger(__name__)
 
 try:
     import ntplib
@@ -40,16 +43,21 @@ class NTPClient(QObject):
 
     @pyqtSlot()
     def run(self):
-        self._running = True
-        while self._running:
-            estimate = self._query()
-            if estimate:
-                self.time_updated.emit(estimate)
-            # Sleep in small increments so stop() is responsive
-            for _ in range(int(QUERY_INTERVAL * 10)):
-                if not self._running:
-                    break
-                time.sleep(0.1)
+        try:
+            self._running = True
+            while self._running:
+                try:
+                    estimate = self._query()
+                    if estimate:
+                        self.time_updated.emit(estimate)
+                except Exception as exc:
+                    log.warning("NTP query cycle failed: %s", exc)
+                for _ in range(int(QUERY_INTERVAL * 10)):
+                    if not self._running:
+                        break
+                    time.sleep(0.1)
+        except Exception as exc:
+            log.exception("NTPClient.run() fatal: %s", exc)
 
     def stop(self):
         self._running = False
@@ -77,11 +85,14 @@ class NTPClient(QObject):
         results = []
         with ThreadPoolExecutor(max_workers=8) as executor:
             futures = {executor.submit(self._query_server, s): s for s in NTP_SERVERS}
-            for future in as_completed(futures, timeout=5.0):
-                try:
-                    results.append(future.result())
-                except Exception:
-                    pass
+            try:
+                for future in as_completed(futures, timeout=5.0):
+                    try:
+                        results.append(future.result())
+                    except Exception:
+                        pass
+            except Exception:
+                pass  # TimeoutError if servers didn't all respond in 5s; use whatever arrived
 
         good = [r for r in results if r.success and r.delay < 10.0]
         if not good:
