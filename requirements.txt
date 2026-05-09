@@ -1,0 +1,11 @@
+PyQt6>=6.6.0
+PyQt6-WebEngine>=6.6.0
+pyserial>=3.5
+pynmea2>=1.19.0
+pyubx2>=1.2.0
+ntplib>=0.4.0
+numpy>=1.26.0
+matplotlib>=3.8.0
+vispy>=0.14.0
+folium>=0.15.0
+sgp4>=2.21

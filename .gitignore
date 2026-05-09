@@ -1,0 +1,26 @@
+# Downloaded satellite data — regenerated at runtime
+tle_cache/
+gps/satellites.dat
+gps/satellites.dat.tmp
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE / local tooling
+.claude/
+.vscode/
+.idea/
+*.swp
