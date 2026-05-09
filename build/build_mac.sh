@@ -24,12 +24,12 @@ DMG_OUT="dist/GPS_Monitor_${VERSION}_macOS.dmg"
 cd "$(dirname "$0")/.."
 echo "=== GPS Monitor — macOS build ==="
 echo "  Working dir: $(pwd)"
-echo "  Python:      $(python --version)"
+echo "  Python:      $(python3 --version)"
 echo ""
 
 # ── Step 1: Generate icons ──────────────────────────────────
 echo "[1/4] Generating icons …"
-python build/make_icons.py
+python3 build/make_icons.py
 
 # ── Step 2: PyInstaller ─────────────────────────────────────
 echo "[2/4] Running PyInstaller …"
