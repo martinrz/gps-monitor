@@ -5,8 +5,11 @@ entries merge correctly across downloads rather than duplicating by list positio
 Acts as a deep fallback after the 24-hour tle_cache layer.
 """
 import json
+import logging
 import os
 import time
+
+log = logging.getLogger(__name__)
 
 _DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'satellites.dat')
 
@@ -27,7 +30,12 @@ class SatelliteDatabase:
                 raw = json.load(f)
             if raw.get('version') == 1:
                 self._data = raw.get('systems', {})
-        except (FileNotFoundError, json.JSONDecodeError, KeyError):
+            total = sum(len(v.get('satellites', {})) for v in self._data.values())
+            log.info("Loaded satellite DB: %d systems, %d entries", len(self._data), total)
+        except FileNotFoundError:
+            self._data = {}
+        except (json.JSONDecodeError, KeyError) as exc:
+            log.warning("Satellite DB corrupted, starting fresh: %s", exc)
             self._data = {}
 
     def _save(self):
@@ -44,10 +52,13 @@ class SatelliteDatabase:
         sys_data = self._data.setdefault(system, {'last_download': 0.0, 'satellites': {}})
         sys_data['last_download'] = ts
         sats = sys_data['satellites']
+        added = 0
         for name, l1, l2 in tles:
             nid = _norad_id(l1)
             if nid not in sats or sats[nid]['ts'] < ts:
                 sats[nid] = {'name': name, 'line1': l1, 'line2': l2, 'ts': ts}
+                added += 1
+        log.debug("DB merge %s: %d/%d entries updated", system, added, len(tles))
         self._save()
 
     def get(self, system: str) -> list:

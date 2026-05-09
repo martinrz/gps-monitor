@@ -3,6 +3,10 @@ tle_cache/
 gps/satellites.dat
 gps/satellites.dat.tmp
 
+# Runtime log files — ignored; Claude session logs (.jsonl) are tracked
+logs/*.log
+logs/*.log.*
+
 # Python
 __pycache__/
 *.py[cod]

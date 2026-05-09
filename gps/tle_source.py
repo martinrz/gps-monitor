@@ -1,8 +1,11 @@
 """Download and cache TLE data from CelesTrak (24-hour refresh)."""
+import logging
 import os
 import ssl
 import time
 import urllib.request
+
+log = logging.getLogger(__name__)
 
 try:
     import certifi
@@ -45,7 +48,8 @@ def _download(system: str) -> str:
         req = urllib.request.Request(url, headers={'User-Agent': 'GPS-Monitor/1.0'})
         with urllib.request.urlopen(req, timeout=15, context=_SSL_CTX) as resp:
             return resp.read().decode('utf-8', errors='replace')
-    except Exception:
+    except Exception as exc:
+        log.warning("Download failed for %s: %s", system, exc)
         return ""
 
 
@@ -68,18 +72,22 @@ def get_tles(system: str) -> list:
             f.write(data)
         tles = _parse(data)
         db.update(system, tles)
+        log.info("Downloaded %s: %d satellites", system, len(tles))
         return tles
 
     # 3. Stale cache file
     if os.path.exists(path):
+        log.debug("Using stale cache for %s", system)
         with open(path, 'r') as f:
             return _parse(f.read())
 
     # 4. Persistent database — survives cache clearing and extended outages
     db_tles = db.get(system)
     if db_tles:
+        log.info("Using satellite DB fallback for %s: %d entries", system, len(db_tles))
         return db_tles
 
+    log.warning("No TLE data available for %s", system)
     return []
 
 

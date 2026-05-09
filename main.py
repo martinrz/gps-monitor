@@ -2,6 +2,7 @@ import sys
 import os
 import ssl
 import argparse
+import logging
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
 
@@ -23,6 +24,10 @@ os.environ.setdefault("QT_LOGGING_RULES", "qt.qpa.window=false")
 
 
 def main():
+    from utils.log_config import setup as _log_setup
+    _log_setup()
+    log = logging.getLogger(__name__)
+
     parser = argparse.ArgumentParser(description="GPS Monitor Application")
     parser.add_argument('--simulate', action='store_true',
                         help='Run in simulation mode (no hardware required)')
@@ -31,6 +36,8 @@ def main():
     parser.add_argument('--port', type=str, default=None,
                         help='Serial port for GPS receiver (e.g. COM3 or /dev/ttyUSB0)')
     args = parser.parse_args()
+    mode = 'TLE' if args.tle else ('simulation' if args.simulate else f'serial:{args.port}')
+    log.info("Starting GPS Monitor — mode: %s", mode)
 
     app = QApplication(sys.argv)
     app.setStyle('Fusion')

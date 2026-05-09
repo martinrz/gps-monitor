@@ -1,4 +1,5 @@
 """Background worker: pre-computes display data so the main thread only does fast widget-apply ops."""
+import logging
 import math
 import time
 from dataclasses import dataclass, field
@@ -6,6 +7,8 @@ from typing import Optional
 
 import numpy as np
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
+
+log = logging.getLogger(__name__)
 
 from gps.data_models import GPSData, GPSFix, SYSTEM_COLORS
 
@@ -53,6 +56,12 @@ class DisplayWorker(QObject):
 
     @pyqtSlot(object)
     def process(self, gps_data: GPSData):
+        try:
+            self._process(gps_data)
+        except Exception as exc:
+            log.exception("Display worker error: %s", exc)
+
+    def _process(self, gps_data: GPSData):
         sats = gps_data.satellites
 
         # --- Globe geometry (per-satellite loop off main thread) ---
