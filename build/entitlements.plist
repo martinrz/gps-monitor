@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Allow outbound network connections (TLE downloads, NTP queries) -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+    <!-- Allow serial port access for GPS hardware -->
+    <key>com.apple.security.device.serial</key>
+    <true/>
+    <!-- Allow access to user-selected files (open/save dialogs) -->
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+</dict>
+</plist>
