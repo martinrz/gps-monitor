@@ -19,6 +19,7 @@ class SkyViewWidget(QWidget):
         layout.addWidget(toolbar)
         layout.addWidget(self._canvas)
 
+        self._pixel_mode = False
         self._setup_axes()
 
     def _setup_axes(self):
@@ -36,6 +37,9 @@ class SkyViewWidget(QWidget):
         ax.tick_params(colors='#aaaaaa')
         self._fig.tight_layout(pad=0.5)
 
+    def set_pixel_mode(self, on: bool):
+        self._pixel_mode = on
+
     def update_satellites(self, satellites: list):
         ax = self._ax
         ax.cla()
@@ -44,17 +48,19 @@ class SkyViewWidget(QWidget):
         for sat in satellites:
             if sat.elevation < 0:
                 continue
-            r = 90.0 - sat.elevation       # zenith = 0, horizon = 90
+            r     = 90.0 - sat.elevation
             theta = np.radians(sat.azimuth)
-
             color = SYSTEM_COLORS.get(sat.system, '#888888')
-            # Dim the dot if SNR is weak
-            alpha = 1.0 if sat.snr >= 25 else 0.55
 
-            size = max(40, sat.snr * 2.5)
-            ax.scatter(theta, r, s=size, c=color, alpha=alpha, zorder=5)
-            ax.annotate(str(sat.prn), (theta, r),
-                        textcoords='offset points', xytext=(3, 3),
-                        color='white', fontsize=5, zorder=6)
+            if self._pixel_mode:
+                ax.scatter(theta, r, s=4, c=color, alpha=1.0,
+                           marker='s', linewidths=0, zorder=5)
+            else:
+                alpha = 1.0 if sat.snr >= 25 else 0.55
+                size  = max(40, sat.snr * 2.5)
+                ax.scatter(theta, r, s=size, c=color, alpha=alpha, zorder=5)
+                ax.annotate(str(sat.prn), (theta, r),
+                            textcoords='offset points', xytext=(3, 3),
+                            color='white', fontsize=5, zorder=6)
 
         self._canvas.draw_idle()

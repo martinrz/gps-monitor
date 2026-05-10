@@ -512,6 +512,7 @@ class MainWindow(QMainWindow):
     @pyqtSlot(bool)
     def _on_pixels_toggled(self, on: bool):
         self._globe.toggle_pixel_mode()
+        self._sky_view.set_pixel_mode(on)
 
     def _park_thread(self, thread):
         """Keep a Python reference to a still-running QThread so GC cannot destroy it."""
