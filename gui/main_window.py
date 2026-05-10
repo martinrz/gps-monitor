@@ -197,6 +197,19 @@ class MainWindow(QMainWindow):
         self._btn_orbits_only.toggled.connect(self._on_orbits_only_toggled)
         tb.addWidget(self._btn_orbits_only)
 
+        # Pixel mode toggle button
+        self._btn_pixels = QPushButton("Pixels")
+        self._btn_pixels.setCheckable(True)
+        self._btn_pixels.setFont(QFont("Segoe UI", 9))
+        self._btn_pixels.setToolTip("Render satellites as bright 2-pixel squares to reduce clutter")
+        self._btn_pixels.setStyleSheet(
+            "QPushButton{background:#2a2a3a;color:#8888cc;border-radius:4px;padding:3px 10px;}"
+            "QPushButton:checked{background:#1a1a2a;color:#ffffff;}"
+            "QPushButton:hover{background:#3a3a5a;}"
+        )
+        self._btn_pixels.toggled.connect(self._on_pixels_toggled)
+        tb.addWidget(self._btn_pixels)
+
     def _build_constellation_toolbar(self):
         tb = QToolBar("Constellations", self)
         tb.setMovable(False)
@@ -495,6 +508,10 @@ class MainWindow(QMainWindow):
         self._btn_orbits.blockSignals(True)
         self._btn_orbits.setChecked(self._globe._rings_enabled)
         self._btn_orbits.blockSignals(False)
+
+    @pyqtSlot(bool)
+    def _on_pixels_toggled(self, on: bool):
+        self._globe.toggle_pixel_mode()
 
     def _park_thread(self, thread):
         """Keep a Python reference to a still-running QThread so GC cannot destroy it."""

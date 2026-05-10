@@ -176,6 +176,7 @@ class Globe3DWidget(QWidget):
         self._last_hovered = None
         self._rings_enabled = False
         self._orbits_only   = False
+        self._pixel_mode    = False
         self._orbit_rings: list = []
         self._ring_systems: frozenset = frozenset()
 
@@ -443,8 +444,13 @@ class Globe3DWidget(QWidget):
 
         pos = np.array(positions, dtype=np.float32)
         col = np.array(colors,    dtype=np.float32)
-        self._sat_visual.set_data(pos, face_color=col, edge_color=col,
-                                  size=9, edge_width=0.5)
+        if self._pixel_mode:
+            col[:, 3] = 1.0
+            self._sat_visual.set_data(pos, face_color=col, edge_color=col,
+                                      size=2, edge_width=0, symbol='square')
+        else:
+            self._sat_visual.set_data(pos, face_color=col, edge_color=col,
+                                      size=9, edge_width=0.5)
         self._canvas.update()
         self._update_orbit_rings(satellites)
 
@@ -459,6 +465,11 @@ class Globe3DWidget(QWidget):
                 np.zeros((1, 3), dtype=np.float32),
                 face_color=[[0, 0, 0, 0]], edge_color=[[0, 0, 0, 0]], size=0.001
             )
+        elif self._pixel_mode:
+            bright = colors.copy()
+            bright[:, 3] = 1.0          # force full alpha on every dot
+            self._sat_visual.set_data(positions, face_color=bright, edge_color=bright,
+                                      size=2, edge_width=0, symbol='square')
         else:
             self._sat_visual.set_data(positions, face_color=colors, edge_color=colors,
                                       size=9, edge_width=0.5)
@@ -502,6 +513,35 @@ class Globe3DWidget(QWidget):
                 self._orbit_rings.clear()
                 self._ring_systems = frozenset()
         self._canvas.update()
+
+    def toggle_pixel_mode(self):
+        """Switch satellite markers between normal dots and bright 2-px squares."""
+        if not self._vispy_ok:
+            return
+        self._pixel_mode = not self._pixel_mode
+        # Re-render with current data so the change is immediate
+        if self._current_positions is not None and len(self._current_satellites):
+            pos = (self._current_positions if isinstance(self._current_positions, np.ndarray)
+                   else np.array(self._current_positions, dtype=np.float32))
+            # Rebuild colors from current satellite list
+            colors = []
+            for sat in self._current_satellites:
+                hex_c = SYSTEM_COLORS.get(sat.system, '#888888')
+                if sat.elevation > 0 and sat.snr >= 25:
+                    colors.append(_hex_to_rgba(hex_c, 1.0))
+                elif sat.elevation > 0:
+                    colors.append(_hex_to_rgba(hex_c, 0.65))
+                else:
+                    colors.append(_hex_to_rgba(hex_c, 0.22))
+            col = np.array(colors, dtype=np.float32)
+            if self._pixel_mode:
+                col[:, 3] = 1.0
+                self._sat_visual.set_data(pos, face_color=col, edge_color=col,
+                                          size=2, edge_width=0, symbol='square')
+            else:
+                self._sat_visual.set_data(pos, face_color=col, edge_color=col,
+                                          size=9, edge_width=0.5)
+            self._canvas.update()
 
     def _update_orbit_rings(self, satellites: list):
         if not self._rings_enabled:
