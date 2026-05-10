@@ -171,6 +171,32 @@ class MainWindow(QMainWindow):
         self._btn_terrain.toggled.connect(self._on_terrain_toggled)
         tb.addWidget(self._btn_terrain)
 
+        # Orbit rings toggle button
+        self._btn_orbits = QPushButton("Orbits")
+        self._btn_orbits.setCheckable(True)
+        self._btn_orbits.setFont(QFont("Segoe UI", 9))
+        self._btn_orbits.setToolTip("Show/hide orbital altitude rings per constellation")
+        self._btn_orbits.setStyleSheet(
+            "QPushButton{background:#2a2a3a;color:#8888cc;border-radius:4px;padding:3px 10px;}"
+            "QPushButton:checked{background:#1e1e5c;color:#aaaaff;}"
+            "QPushButton:hover{background:#3a3a5a;}"
+        )
+        self._btn_orbits.toggled.connect(self._on_orbits_toggled)
+        tb.addWidget(self._btn_orbits)
+
+        # Orbits-only toggle button
+        self._btn_orbits_only = QPushButton("Orbits Only")
+        self._btn_orbits_only.setCheckable(True)
+        self._btn_orbits_only.setFont(QFont("Segoe UI", 9))
+        self._btn_orbits_only.setToolTip("Show orbital rings only — hide satellite dots")
+        self._btn_orbits_only.setStyleSheet(
+            "QPushButton{background:#2a2a3a;color:#8888cc;border-radius:4px;padding:3px 10px;}"
+            "QPushButton:checked{background:#3a1e5c;color:#cc88ff;}"
+            "QPushButton:hover{background:#3a3a5a;}"
+        )
+        self._btn_orbits_only.toggled.connect(self._on_orbits_only_toggled)
+        tb.addWidget(self._btn_orbits_only)
+
     def _build_constellation_toolbar(self):
         tb = QToolBar("Constellations", self)
         tb.setMovable(False)
@@ -457,6 +483,18 @@ class MainWindow(QMainWindow):
     def _on_terrain_toggled(self, on: bool):
         self._globe.toggle_terrain()
         self._world_map.set_terrain(on)
+
+    @pyqtSlot(bool)
+    def _on_orbits_toggled(self, on: bool):
+        self._globe.toggle_orbit_rings()
+
+    @pyqtSlot(bool)
+    def _on_orbits_only_toggled(self, on: bool):
+        self._globe.toggle_orbits_only()
+        # Keep the Orbits button in sync with ring state (block signal to avoid re-entry)
+        self._btn_orbits.blockSignals(True)
+        self._btn_orbits.setChecked(self._globe._rings_enabled)
+        self._btn_orbits.blockSignals(False)
 
     def _park_thread(self, thread):
         """Keep a Python reference to a still-running QThread so GC cannot destroy it."""

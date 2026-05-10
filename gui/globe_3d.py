@@ -25,6 +25,31 @@ COAST_R = 1.0015
 _DEFAULT_LAT = 51.5074
 _DEFAULT_LON = -0.1278
 
+# Approximate orbital inclinations used to tilt the ring visual for each system
+_SYSTEM_INCLINATIONS = {
+    'GPS':      55.0,
+    'GLONASS':  64.8,
+    'GALILEO':  56.0,
+    'BEIDOU':   55.5,
+    'QZSS':     43.0,
+    'IRIDIUM':  86.4,
+    'STARLINK': 53.0,
+    'ONEWEB':   87.5,
+    'STATIONS': 51.6,
+    'NAVIC':    29.0,
+}
+
+
+def _make_ring_verts(radius: float, inclination_deg: float, n: int = 360) -> np.ndarray:
+    """Circle of n points at the given radius, tilted by inclination_deg around the X-axis."""
+    t = np.linspace(0, 2 * np.pi, n, endpoint=True)
+    x = radius * np.cos(t)
+    y = radius * np.sin(t)
+    inc = math.radians(inclination_deg)
+    ci, si = math.cos(inc), math.sin(inc)
+    # Rotate (x, y, 0) around X: y' = y*cos - 0*sin, z' = y*sin + 0*cos
+    return np.column_stack([x, y * ci, y * si]).astype(np.float32)
+
 
 def _vis_radius(alt_km) -> float:
     if alt_km is None or alt_km < 2_000:
@@ -149,6 +174,10 @@ class Globe3DWidget(QWidget):
         self._current_satellites: list = []
         self._current_positions: list  = []
         self._last_hovered = None
+        self._rings_enabled = False
+        self._orbits_only   = False
+        self._orbit_rings: list = []
+        self._ring_systems: frozenset = frozenset()
 
         if not VISPY_AVAILABLE:
             lbl = QLabel("VisPy not available.\nInstall with: pip install vispy")
@@ -379,6 +408,7 @@ class Globe3DWidget(QWidget):
             self._current_satellites = []
             self._current_positions  = []
             self._canvas.update()
+            self._update_orbit_rings([])
             return
 
         positions = []
@@ -416,6 +446,7 @@ class Globe3DWidget(QWidget):
         self._sat_visual.set_data(pos, face_color=col, edge_color=col,
                                   size=9, edge_width=0.5)
         self._canvas.update()
+        self._update_orbit_rings(satellites)
 
     def apply_prepared(self, positions: np.ndarray, colors: np.ndarray, satellites: list):
         """Fast path: apply pre-computed arrays from DisplayWorker (no per-sat loop)."""
@@ -431,6 +462,73 @@ class Globe3DWidget(QWidget):
         else:
             self._sat_visual.set_data(positions, face_color=colors, edge_color=colors,
                                       size=9, edge_width=0.5)
+        self._canvas.update()
+        self._update_orbit_rings(satellites)
+
+    # ------------------------------------------------------------------
+    # Orbital rings
+    # ------------------------------------------------------------------
+
+    def toggle_orbit_rings(self):
+        if not self._vispy_ok:
+            return
+        self._rings_enabled = not self._rings_enabled
+        if self._rings_enabled:
+            self._ring_systems = frozenset()   # force rebuild
+            self._rebuild_orbit_rings(self._current_satellites)
+        else:
+            for ring in self._orbit_rings:
+                ring.parent = None
+            self._orbit_rings.clear()
+            self._ring_systems = frozenset()
+            self._canvas.update()
+
+    def toggle_orbits_only(self):
+        """Show orbital rings and hide satellite dots, or restore dots."""
+        if not self._vispy_ok:
+            return
+        self._orbits_only = not self._orbits_only
+        if self._orbits_only:
+            self._sat_visual.visible = False
+            if not self._rings_enabled:
+                self._rings_enabled = True
+                self._ring_systems = frozenset()
+                self._rebuild_orbit_rings(self._current_satellites)
+        else:
+            self._sat_visual.visible = True
+            if not self._rings_enabled:
+                for ring in self._orbit_rings:
+                    ring.parent = None
+                self._orbit_rings.clear()
+                self._ring_systems = frozenset()
+        self._canvas.update()
+
+    def _update_orbit_rings(self, satellites: list):
+        if not self._rings_enabled:
+            return
+        new_systems = frozenset(s.system for s in satellites)
+        if new_systems == self._ring_systems:
+            return
+        self._ring_systems = new_systems
+        self._rebuild_orbit_rings(satellites)
+
+    def _rebuild_orbit_rings(self, satellites: list):
+        for ring in self._orbit_rings:
+            ring.parent = None
+        self._orbit_rings.clear()
+        seen: set = set()
+        for sat in satellites:
+            if sat.system in seen:
+                continue
+            seen.add(sat.system)
+            radius = _vis_radius(sat.altitude_km)
+            incl = _SYSTEM_INCLINATIONS.get(sat.system, 56.0)
+            rgba = _hex_to_rgba(SYSTEM_COLORS.get(sat.system, '#888888'), 0.45)
+            verts = _make_ring_verts(radius, incl)
+            ring = visuals.Line(verts, color=rgba, width=1.5, connect='strip',
+                                parent=self._view.scene)
+            ring.set_gl_state(depth_test=False)
+            self._orbit_rings.append(ring)
         self._canvas.update()
 
     # ------------------------------------------------------------------
